@@ -32,13 +32,33 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         self.flights = {}
         self.host = host
         self.tls_certificates = tls_certificates
+<<<<<<< HEAD
         if self.tls_certificates:
             print(tls_certificates)
+=======
+>>>>>>> master
 
     @classmethod
     def descriptor_to_key(self, descriptor):
         return (descriptor.descriptor_type.value, descriptor.command,
                 tuple(descriptor.path or tuple()))
+
+    def _make_flight_info(self, key, descriptor, table):
+        if self.tls_certificates:
+            location = pyarrow.flight.Location.for_grpc_tls(self.host, self.port)
+        else:
+            location = pyarrow.flight.Location.for_grpc_tcp(self.host, self.port)
+        endpoints = [pyarrow.flight.FlightEndpoint(repr(key), [location]),]
+
+        mock_sink = pyarrow.MockOutputStream()
+        stream_writer = pyarrow.RecordBatchStreamWriter(mock_sink, table.schema)
+        stream_writer.write_table(table)
+        stream_writer.close()
+        data_size = mock_sink.size()
+
+        return pyarrow.flight.FlightInfo(table.schema,
+                                         descriptor, endpoints,
+                                         table.num_rows, data_size)
 
     def list_flights(self, context, criteria):
         for key, table in self.flights.items():
@@ -48,6 +68,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             else:
                 descriptor = pyarrow.flight.FlightDescriptor.for_path(*key[2])
 
+<<<<<<< HEAD
             if self.tls_certificates:
                 location = pyarrow.flight.Location.for_grpc_tls(self.host, self.port)
             else:
@@ -63,11 +84,15 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             yield pyarrow.flight.FlightInfo(table.schema,
                                             descriptor, endpoints,
                                             table.num_rows, data_size)
+=======
+            yield self._make_flight_info(key, descriptor, table)
+>>>>>>> master
 
     def get_flight_info(self, context, descriptor):
         key = FlightServer.descriptor_to_key(descriptor)
         if key in self.flights:
             table = self.flights[key]
+<<<<<<< HEAD
             print(table.schema)
             if self.tls_certificates:
                 location = pyarrow.flight.Location.for_grpc_tls(self.host, self.port)
@@ -83,6 +108,9 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             return pyarrow.flight.FlightInfo(table.schema,
                                              descriptor, endpoints,
                                              table.num_rows, data_size)
+=======
+            return self._make_flight_info(key, descriptor, table)
+>>>>>>> master
         raise KeyError('Flight not found.')
 
     def do_put(self, context, descriptor, reader, writer):
@@ -126,21 +154,32 @@ class FlightServer(pyarrow.flight.FlightServerBase):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=5005)
-    parser.add_argument("--tls", nargs=2, default=None)
+    parser.add_argument("--host", type=str, default="localhost",
+                        help="Address or hostname to listen on")
+    parser.add_argument("--port", type=int, default=5005,
+                        help="Port number to listen on")
+    parser.add_argument("--tls", nargs=2, default=None,
+                        metavar=('CERTFILE', 'KEYFILE'),
+                        help="Enable transport-level security")
 
     args = parser.parse_args()
-    kwargs = {}
+    tls_certificates = []
     scheme = "grpc+tcp"
     if args.tls:
         scheme = "grpc+tls"
         with open(args.tls[0], "rb") as cert_file:
-            kwargs["tls_cert_chain"] = cert_file.read()
+            tls_cert_chain = cert_file.read()
         with open(args.tls[1], "rb") as key_file:
-            kwargs["tls_private_key"] = key_file.read()
-            
+            tls_private_key = key_file.read()
+        tls_certificates.append((tls_cert_chain, tls_private_key))
+
     location = "{}://{}:{}".format(scheme, args.host, args.port)
+<<<<<<< HEAD
+=======
+
+    server = FlightServer(args.host, location,
+                          tls_certificates=tls_certificates)
+>>>>>>> master
     print("Serving on", location)
     tls_certificates = []
     if kwargs :

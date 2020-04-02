@@ -351,6 +351,9 @@ cdef extern from "arrow/api.h" namespace "arrow" nogil:
         shared_ptr[CField] WithMetadata(
             const shared_ptr[CKeyValueMetadata]& metadata)
         shared_ptr[CField] RemoveMetadata()
+        shared_ptr[CField] WithType(const shared_ptr[CDataType]& type)
+        shared_ptr[CField] WithName(const c_string& name)
+        shared_ptr[CField] WithNullable(c_bool nullable)
         vector[shared_ptr[CField]] Flatten()
 
     cdef cppclass CStructType" arrow::StructType"(CDataType):
@@ -1494,6 +1497,9 @@ cdef extern from "arrow/compute/api.h" namespace "arrow::compute" nogil:
     CStatus Take(CFunctionContext* context, const CDatum& values,
                  const CDatum& indices, const CTakeOptions& options,
                  CDatum* out)
+    CStatus Take(CFunctionContext* context, const CRecordBatch& batch,
+                 const CArray& indices, const CTakeOptions& options,
+                 shared_ptr[CRecordBatch]* out)
 
     # Filter clashes with gandiva.pyx::Filter
     CStatus FilterKernel" arrow::compute::Filter"(
@@ -1773,6 +1779,7 @@ cdef extern from 'arrow/util/compression.h' namespace 'arrow' nogil:
         CCompressionType_BROTLI" arrow::Compression::BROTLI"
         CCompressionType_ZSTD" arrow::Compression::ZSTD"
         CCompressionType_LZ4" arrow::Compression::LZ4"
+        CCompressionType_LZ4_FRAME" arrow::Compression::LZ4_FRAME"
         CCompressionType_BZ2" arrow::Compression::BZ2"
 
     cdef cppclass CCodec" arrow::util::Codec":
